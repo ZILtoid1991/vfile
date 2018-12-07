@@ -1,0 +1,6 @@
+name "vfile"
+description "Reads and writes a memory location as if it were a file."
+authors "Laszlo Szeremi"
+copyright "Copyright © 2018, Laszlo Szeremi"
+license "Boost"
+target "library"
