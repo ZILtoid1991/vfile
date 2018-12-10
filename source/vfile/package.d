@@ -46,7 +46,7 @@ public struct VFile{
 	 */
 	public T[] rawRead(T)(T[] buffer){
 		const size_t remaining = datastream.length - position;
-		if(remaining + buffer.length <= datastream.length){
+		if(position + buffer.length <= datastream.length){
 			memcpy(buffer.ptr, datastream.ptr + position, buffer.length * T.sizeof);
 			position += buffer.length * T.sizeof;
 			return buffer;
@@ -60,7 +60,7 @@ public struct VFile{
 	 * Important: Does not provide any complex serialization method, so structs must avoid heap managed fields like dynamic
 	 * arrays. They should implement a custom serializer.
 	 */
-	public T read(T){
+	public T read(T)(){
 		T buffer;
 		if(remaining + T.sizeof <= datastream.length){
 			memcpy(&buffer, datastream.ptr + position, T.sizeof);
@@ -75,14 +75,13 @@ public struct VFile{
 	 * If the stream is shorter, then it'll be extended.
 	 */
 	public void rawWrite(T)(T[] buffer){
-		const size_t remaining = datastream.length - position;
-		if(remaining + buffer.length <= datastream.length){
-			memcpy(datastream.ptr + position, buffer.ptr, buffer.length * T.sizeof);
-			position += buffer.length;
-		}else{
-			datastream.length = remaining;
-			datastream ~= cast(void[])buffer;
+		if(position + buffer.length >= datastream.length){
+			datastream.length = position;
+			datastream.length += buffer.length;
 		}
+		memcpy(datastream.ptr + position, buffer.ptr, buffer.length * T.sizeof);
+		position += buffer.length;
+		assert(position <= datastream.length);
 	}
 	/**
 	 * Writes a single element to the stream.
@@ -90,8 +89,7 @@ public struct VFile{
 	 * Important: Does not provide any complex serialization method, so structs must avoid heap managed fields like dynamic
 	 * arrays. They should implement a custom serializer.
 	 */
-	public T write(T){
-		T buffer;
+	public T write(T)(T buffer){
 		if(remaining + T.sizeof <= datastream.length){
 			memcpy(datastream.ptr + position, &buffer, T.sizeof);
 			position += T.sizeof;
@@ -130,4 +128,30 @@ public struct VFile{
 		return datastream.length;
 	}
 
+}
+unittest{
+	immutable string a = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum et libero dignissim, porta odio id, 
+			sollicitudin quam. Suspendisse ultrices quis erat nec elementum. Phasellus sollicitudin vehicula nunc, vel 
+			laoreet magna dictum eget. Pellentesque sit amet tellus ac mauris elementum bibendum sed in eros. Nullam nec ligula 
+			id ligula egestas malesuada. Etiam et nulla nec nibh faucibus suscipit non id felis. Integer vulputate lobortis 
+			neque, ut congue nisl suscipit at. Nullam ac ante eu orci viverra dapibus. \n";
+	immutable string b = "Vivamus quis finibus mi. Proin lectus enim, convallis a libero a, condimentum eleifend nisl. Vestibulum 
+			luctus malesuada orci a ornare. Curabitur orci dolor, ultricies ut malesuada nec, semper dictum justo. Ut vestibulum 
+			nisl id velit congue, tristique porta sapien rutrum. Pellentesque ultricies id arcu non fermentum. Ut at est ex. Sed 
+			elementum gravida risus, et cursus magna tincidunt nec. Morbi hendrerit efficitur neque, non ultricies quam maximus 
+			in. Sed bibendum bibendum dui, egestas dignissim orci tincidunt porta. Sed nec aliquet leo, eu posuere massa. \n";
+	string s;
+	VFile file = VFile(s);
+	file.rawWrite(a);
+	file.rawWrite(b);
+	assert(file.size == a.length + b.length);
+	char[] c;
+	c.length = a.length + b.length;
+	file.seek(0);
+	file.rawRead(c);
+	assert(c == a ~ b);
+	file.seek(0);
+	c.length = 5;
+	file.rawRead(c);
+	assert(c == "Lorem");
 }

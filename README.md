@@ -1,5 +1,5 @@
 # vfile
-Reads and writes a memory location as if it were a file.
+Implements a virtual file, meaning a memory location can be read and written like if it were a file, reducing overloads by 
 
 Mostly compatible with Phobos'es std.stdio's File structure.
 
@@ -10,6 +10,17 @@ Mostly compatible with Phobos'es std.stdio's File structure.
 * Etc.
 
 ## Usage
+### Code example
+`import std.stdio;
+import vfile;
+
+LoadedObject loadSomething(F = File)(F file){
+	HeaderStruct[1] header;
+	file.rawRead(header);
+	[...]
+}
+`
+
 ### dub.sdl
 `dependency "vfile" version="*"`
 
