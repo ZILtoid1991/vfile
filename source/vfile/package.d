@@ -46,7 +46,7 @@ public struct VFile{
 	 */
 	public T[] rawRead(T)(T[] buffer){
 		//const size_t remaining = datastream.length - position;
-		if(position + buffer.length <= datastream.length){
+		if(position + (buffer.length * T.sizeof) <= datastream.length){
 			memcpy(buffer.ptr, datastream.ptr + position, buffer.length * T.sizeof);
 			position += buffer.length * T.sizeof;
 			return buffer;
@@ -78,13 +78,12 @@ public struct VFile{
 	public void rawWrite(T)(T[] buffer){
 		if(buffer.length + position >= datastream.length){
 			datastream.length = position;
-			datastream.length += buffer.length;
+			datastream.length +=  buffer.length * T.sizeof;
 			//datastream ~= cast(void[])buffer;
 		}//else{
-			memcpy(datastream.ptr + position, buffer.ptr, buffer.length * T.sizeof);
+		memcpy(datastream.ptr + position, buffer.ptr, buffer.length * T.sizeof);
 		//}
-		writeln(datastream.length);
-		position += buffer.length;
+		position +=  buffer.length * T.sizeof;
 		assert(position <= datastream.length);
 	}
 	/**
