@@ -1,5 +1,5 @@
 # vfile
-Implements a virtual file, meaning a memory location can be read and written like if it were a file, reducing overloads by 
+Implements a virtual file, meaning a memory location can be read and written like if it were a file, reducing overloads through the use of templates. Created by László Szerémi (https://twitter.com/ziltoid1991 https://www.patreon.com/ShapeshiftingLizard https://ko-fi.com/shapeshiftinglizard laszloszeremi@outlook.com).
 
 Mostly compatible with Phobos'es std.stdio's File structure.
 
