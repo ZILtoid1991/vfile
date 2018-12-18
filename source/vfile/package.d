@@ -42,16 +42,17 @@ public struct VFile{
 	}
 	/**
 	 * Copies the data into the buffer and moves the file forward the length of the buffer.
-	 * Returns null if EOF is reached.
+	 * Throws exception if EOF reached.
 	 */
 	public T[] rawRead(T)(T[] buffer){
-		const size_t remaining = datastream.length - position;
+		//const size_t remaining = datastream.length - position;
 		if(position + buffer.length <= datastream.length){
 			memcpy(buffer.ptr, datastream.ptr + position, buffer.length * T.sizeof);
 			position += buffer.length * T.sizeof;
 			return buffer;
 		}else{
-			return null;
+			import std.conv : to;
+			throw new Exception("EOF reached at position " ~ to!string(position));
 		}
 	}
 	/**
@@ -75,11 +76,14 @@ public struct VFile{
 	 * If the stream is shorter, then it'll be extended.
 	 */
 	public void rawWrite(T)(T[] buffer){
-		if(position + buffer.length >= datastream.length){
+		if(buffer.length + position >= datastream.length){
 			datastream.length = position;
 			datastream.length += buffer.length;
-		}
-		memcpy(datastream.ptr + position, buffer.ptr, buffer.length * T.sizeof);
+			//datastream ~= cast(void[])buffer;
+		}//else{
+			memcpy(datastream.ptr + position, buffer.ptr, buffer.length * T.sizeof);
+		//}
+		writeln(datastream.length);
 		position += buffer.length;
 		assert(position <= datastream.length);
 	}
@@ -102,6 +106,7 @@ public struct VFile{
 	 * Jumps to the given location.
 	 */
 	@nogc @property public void seek(long offset, int origin = SEEK_SET) @trusted{
+		assert(position <= datastream.length);
 		final switch(origin){
 			case SEEK_SET:
 				position = cast(sizediff_t)offset;
