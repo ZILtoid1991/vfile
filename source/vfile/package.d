@@ -3,6 +3,7 @@ module vfile;
 import core.stdc.stdlib;
 import core.stdc.string : memcpy;
 import std.stdio;
+import std.typecons : Flag, Yes, No;
 
 /**
  * Implements the virtual file.
@@ -126,6 +127,41 @@ public struct VFile{
 		return position;
 	}
 	/**
+	 * Return an input range to read the data stream by line.
+	 */
+	auto byLine(Term = char, Char = char)(Flag!"keepTerm" keepTerm = No.keepTerm, Term term = '\x0a'){
+		class ByLineRange{
+			public:
+			@property bool empty(){ return lines == null; }
+			@property Char[] front() { return curline; }
+			void popFront(){
+				import std.algorithm.searching : countUntil;
+				auto len = lines.countUntil(term);
+				if(len < 0){ // For files lacking a final newline.
+					curline = lines;
+					lines = null;
+				}else{
+					curline = keepTerm ? lines[0..len+term.sizeof] : lines[0..len];
+					lines = lines[len+term.sizeof..$];
+				}
+			}
+
+			private:
+			Char[] lines;
+			Char[] curline;
+			bool keepTerm;
+			Term term;
+
+			this(Char[] data, bool keepTerm, Term term){
+				lines = data;
+				this.keepTerm = keepTerm;
+				this.term = term;
+				popFront();
+			}
+		}
+		return new ByLineRange(cast(Char[])datastream, keepTerm, term);
+	}
+	/**
 	 * Returns the size of the datastream.
 	 */
 	@nogc @property public size_t size(){
@@ -158,4 +194,23 @@ unittest{
 	c.length = 5;
 	file.rawRead(c);
 	assert(c == "Lorem");
+}
+unittest{
+	immutable string a = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n" ~
+		"Suspendisse ultrices quis erat nec elementum.\n" ~
+		"Pellentesque sit amet tellus ac mauris elementum bibendum sed in eros.\n";
+	string s;
+	VFile file = VFile(s);
+	file.rawWrite(a);
+	auto l = file.byLine();
+	assert(l.front() == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", l.front());
+	l.popFront();
+	assert(l.front() == "Suspendisse ultrices quis erat nec elementum.", l.front());
+	l.popFront();
+	assert(l.front() == "Pellentesque sit amet tellus ac mauris elementum bibendum sed in eros.", l.front());
+	l.popFront();
+	assert(l.empty(), l.front());
+
+	l = file.byLine(Yes.keepTerm);
+	assert(l.front() == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n", l.front());
 }
